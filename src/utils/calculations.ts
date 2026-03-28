@@ -30,7 +30,7 @@ export function calculateSalary(entry: any, hourlyRate: number): SalaryCalculati
 
   const totalHours = calculateWorkHours(entry.start, entry.end, entry.breakMinutes);
 
-  // Check if it's a holiday (simplified - you might want to enhance this)
+  // Use automatic holiday detection
   const workDate = entry.date ? parse(entry.date, 'yyyy-MM-dd', new Date()) : new Date();
   const isWorkHoliday = isHoliday(workDate);
 
@@ -58,7 +58,7 @@ export function calculateSalary(entry: any, hourlyRate: number): SalaryCalculati
   };
 }
 
-export function calculateMonthlyTotal(monthlyData: Record<string, any>, hourlyRate: number): MonthlyTotal {
+export function calculateMonthlyTotal(monthlyData: Record<string, any>): MonthlyTotal {
   let totalHours = 0;
   let regularPay = 0;
   let overtimePay = 0;
@@ -67,22 +67,14 @@ export function calculateMonthlyTotal(monthlyData: Record<string, any>, hourlyRa
 
   for (const date in monthlyData) {
     const entry = monthlyData[date];
-    if (entry.calculatedHours !== undefined) {
-      // Use pre-calculated values if available
-      totalHours += entry.calculatedHours;
-      regularPay += entry.regularPay || 0;
-      overtimePay += entry.overtimePay || 0;
-      holidayPay += entry.holidayPay || 0;
-      totalPay += entry.totalPay || 0;
-    } else {
-      // Fallback to calculation
-      const calculation = calculateSalary(entry, hourlyRate);
-      totalHours += calculation.totalHours;
-      regularPay += calculation.regularPay;
-      overtimePay += calculation.overtimePay;
-      holidayPay += calculation.holidayPay;
-      totalPay += calculation.totalPay;
-    }
+    // Use entry's hourly rate (required field now)
+    const hourlyRate = entry.hourlyRate;
+    const calculation = calculateSalary(entry, hourlyRate);
+    totalHours += calculation.totalHours;
+    regularPay += calculation.regularPay;
+    overtimePay += calculation.overtimePay;
+    holidayPay += calculation.holidayPay;
+    totalPay += calculation.totalPay;
   }
 
   return {

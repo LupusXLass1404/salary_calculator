@@ -109,7 +109,9 @@ const calculation = computed(() => {
             start: formData.value.start,
             end: formData.value.end,
             breakMinutes: formData.value.breakMinutes,
-            hourlyRate: formData.value.hourlyRate
+            hourlyRate: formData.value.hourlyRate,
+            date: props.date,
+            // isHoliday will be automatically determined
         }, formData.value.hourlyRate);
     }
     return {
@@ -149,7 +151,7 @@ watch(() => props.entry, (newEntry) => {
         formData.value = {
             start: newEntry.start || '',
             end: newEntry.end || '',
-            breakMinutes: newEntry.breakMinutes || props.defaultBreakMinutes,
+            breakMinutes: newEntry.breakMinutes !== undefined ? newEntry.breakMinutes : props.defaultBreakMinutes,
             hourlyRate: newEntry.hourlyRate || 196
         };
     } else {

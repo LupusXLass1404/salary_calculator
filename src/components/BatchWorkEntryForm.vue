@@ -29,6 +29,15 @@
                 </div>
             </div>
 
+            <!-- 休息時間設定 -->
+            <div class="form-section">
+                <label>休息時間:</label>
+                <div class="break-input">
+                    <input v-model.number="batchData.breakMinutes" type="number" min="0" max="480" step="5"
+                        class="number-input" /> 分鐘
+                </div>
+            </div>
+
             <!-- 日期範圍選擇 -->
             <div class="form-section">
                 <label>應用範圍:</label>
@@ -60,22 +69,33 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { eachDayOfInterval, parseISO, format, isMonday, isTuesday, isWednesday, isThursday, isFriday, isSaturday, isSunday } from 'date-fns';
-import { useSettingsStore } from '@/store/settings'
 
-const SettingsStore = useSettingsStore()
+interface Props {
+    defaultBreakMinutes: number;
+    batchDefaults: {
+        startTime: string;
+        endTime: string;
+        breakMinutes: number;
+        selectedWeekdays: number[];
+    };
+}
+
+const props = defineProps<Props>();
 
 const emit = defineEmits<{
-    'apply-batch': [data: { dates: string[], startTime: string, endTime: string }]
+    'apply-batch': [data: { dates: string[], startTime: string, endTime: string, breakMinutes: number }];
+    'settings-changed': [settings: Props['batchDefaults']];
 }>();
 
 const weekdayNames = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-const selectedWeekdays = ref<number[]>([1, 2, 3, 4, 5]); // 預設周一到周五
+const selectedWeekdays = ref<number[]>([...props.batchDefaults.selectedWeekdays]);
 
 const batchData = ref({
-    startTime: '09:00',
-    endTime: '18:00',
+    startTime: props.batchDefaults.startTime,
+    endTime: props.batchDefaults.endTime,
+    breakMinutes: props.batchDefaults.breakMinutes,
     startDate: format(new Date(), 'yyyy-MM-dd'),
     endDate: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'), // 預設加30天
 });
@@ -125,7 +145,7 @@ const previewInfo = computed(() => {
     if (dates.length === 0) {
         return '沒有符合條件的日期';
     }
-    return `將為 ${dates.length} 天填寫工作時間 (${batchData.value.startTime} ~ ${batchData.value.endTime})`;
+    return `將為 ${dates.length} 天填寫工作時間 (${batchData.value.startTime} ~ ${batchData.value.endTime}, 休息 ${batchData.value.breakMinutes} 分鐘)`;
 });
 
 function applyBatchEntry() {
@@ -149,20 +169,59 @@ function applyBatchEntry() {
         dates,
         startTime: batchData.value.startTime,
         endTime: batchData.value.endTime,
+        breakMinutes: batchData.value.breakMinutes,
     });
 
     alert(`成功將工作時間套用到 ${dates.length} 天`);
 }
 
 function resetForm() {
-    selectedWeekdays.value = [1, 2, 3, 4, 5];
+    selectedWeekdays.value = [...props.batchDefaults.selectedWeekdays];
     batchData.value = {
-        startTime: '09:00',
-        endTime: '18:00',
+        startTime: props.batchDefaults.startTime,
+        endTime: props.batchDefaults.endTime,
+        breakMinutes: props.batchDefaults.breakMinutes,
         startDate: format(new Date(), 'yyyy-MM-dd'),
         endDate: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
     };
 }
+
+// Watch for settings changes and emit update
+watch(() => batchData.value.startTime, (newVal) => {
+    emit('settings-changed', {
+        startTime: newVal,
+        endTime: batchData.value.endTime,
+        breakMinutes: batchData.value.breakMinutes,
+        selectedWeekdays: selectedWeekdays.value
+    });
+});
+
+watch(() => batchData.value.endTime, (newVal) => {
+    emit('settings-changed', {
+        startTime: batchData.value.startTime,
+        endTime: newVal,
+        breakMinutes: batchData.value.breakMinutes,
+        selectedWeekdays: selectedWeekdays.value
+    });
+});
+
+watch(() => batchData.value.breakMinutes, (newVal) => {
+    emit('settings-changed', {
+        startTime: batchData.value.startTime,
+        endTime: batchData.value.endTime,
+        breakMinutes: newVal,
+        selectedWeekdays: selectedWeekdays.value
+    });
+});
+
+watch(() => selectedWeekdays.value, (newVal) => {
+    emit('settings-changed', {
+        startTime: batchData.value.startTime,
+        endTime: batchData.value.endTime,
+        breakMinutes: batchData.value.breakMinutes,
+        selectedWeekdays: [...newVal]
+    });
+}, { deep: true });
 </script>
 
 <style scoped>
@@ -259,6 +318,28 @@ function resetForm() {
 
 .time-input:focus,
 .date-input:focus {
+    outline: none;
+    border-color: #0099ff;
+    box-shadow: 0 0 4px rgba(0, 153, 255, 0.3);
+}
+
+.break-input {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.number-input {
+    background: #333333;
+    border: 1px solid #555555;
+    border-radius: 4px;
+    color: #eeeeee;
+    padding: 0.6rem;
+    font-size: 0.95rem;
+    width: 80px;
+}
+
+.number-input:focus {
     outline: none;
     border-color: #0099ff;
     box-shadow: 0 0 4px rgba(0, 153, 255, 0.3);

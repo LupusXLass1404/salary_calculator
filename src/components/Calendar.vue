@@ -17,7 +17,11 @@
                 'current-month': date.isCurrentMonth,
                 'editing-mode': isEditingMode && hasWorkEntry(date.dateStr)
             }" @click="handleDateClick(date.dateStr)">
-                <span class="day-number">{{ date.day }}</span>
+                <div class="day-header">
+                    <span class="day-number">{{ date.day }}</span>
+                    <span v-if="getHolidayNameForDate(date.dateStr)" class="holiday-label">{{
+                        getHolidayNameForDate(date.dateStr) }}</span>
+                </div>
 
                 <div v-if="hasWorkEntry(date.dateStr)" class="entry-display">
                     <div class="time-info">
@@ -50,7 +54,7 @@
 import { ref, computed, watch } from 'vue';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, getDay, addMonths, subMonths } from 'date-fns';
 import { loadMonthData } from '@/utils/storage';
-import { calculateWorkHours } from '@/utils/time';
+import { calculateWorkHours, getHolidayName } from '@/utils/time';
 import { calculateSalary } from '@/utils/calculations';
 
 interface Props {
@@ -120,25 +124,20 @@ function loadCurrentMonthData() {
     monthData.value = loadMonthData(props.currentMonth);
 }
 
+// Watch for refreshKey changes to reload data
+watch(() => props.refreshKey, () => {
+    loadCurrentMonthData();
+});
+
 function hasWorkEntry(dateStr: string): boolean {
     return !!monthData.value[dateStr];
 }
 
 function getWorkHours(dateStr: string): number {
     const entry = monthData.value[dateStr];
-    if (!entry) return 0;
+    if (!entry || !entry.start || !entry.end) return 0;
 
-    // Use pre-calculated hours if available
-    if (entry.calculatedHours !== undefined) {
-        return entry.calculatedHours;
-    }
-
-    // Fallback to calculation
-    if (entry.start && entry.end) {
-        return Math.round(calculateWorkHours(entry.start, entry.end, entry.breakMinutes) * 10) / 10;
-    }
-
-    return 0;
+    return Math.round(calculateWorkHours(entry.start, entry.end, entry.breakMinutes || 0) * 10) / 10;
 }
 
 function getStartTime(dateStr: string): string {
@@ -149,6 +148,11 @@ function getStartTime(dateStr: string): string {
 function getEndTime(dateStr: string): string {
     const entry = monthData.value[dateStr];
     return entry?.end || '--:--';
+}
+
+function getHolidayNameForDate(dateStr: string): string | null {
+    const date = new Date(dateStr);
+    return getHolidayName(date);
 }
 
 function handleDateClick(dateStr: string) {
@@ -166,7 +170,7 @@ function editEntry(dateStr: string) {
         editForm.value = {
             start: entry.start || '',
             end: entry.end || '',
-            breakMinutes: entry.breakMinutes || 60
+            breakMinutes: entry.breakMinutes !== undefined ? entry.breakMinutes : 60
         };
     }
 }
@@ -181,14 +185,6 @@ function saveEdit() {
         breakMinutes: editForm.value.breakMinutes,
         date: editingDate.value  // 確保有日期屬性
     };
-
-    // Recalculate salary
-    const calculation = calculateSalary(entry, props.hourlyRate);
-    entry.calculatedHours = calculation.totalHours;
-    entry.regularPay = calculation.regularPay;
-    entry.overtimePay = calculation.overtimePay;
-    entry.holidayPay = calculation.holidayPay;
-    entry.totalPay = calculation.totalPay;
 
     monthData.value[editingDate.value] = entry;
     emit('entry-updated', editingDate.value, entry);
@@ -326,6 +322,20 @@ watch(() => props.refreshKey, () => {
     display: block;
     margin-bottom: 0.25rem;
     color: #eeeeee;
+}
+
+.day-header {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.holiday-label {
+    font-size: 0.7rem;
+    color: #aaaaaa;
+    font-weight: normal;
+    opacity: 0.8;
 }
 
 .entry-indicator {

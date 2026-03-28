@@ -12,7 +12,7 @@ export interface WorkEntry {
   totalPay?: number;
 }
 
-export function calculateWorkHours(startTime: string, endTime: string, breakMinutes: number): number {
+export function calculateWorkHours(startTime: string, endTime: string, breakMinutes: number = 0): number {
   const start = parse(startTime, 'HH:mm', new Date());
   const end = parse(endTime, 'HH:mm', new Date());
 
@@ -22,20 +22,66 @@ export function calculateWorkHours(startTime: string, endTime: string, breakMinu
   }
 
   const totalMinutes = differenceInMinutes(end, start);
-  const workMinutes = Math.max(0, totalMinutes - breakMinutes);
+  const workMinutes = Math.max(0, totalMinutes - (breakMinutes || 0));
 
   return workMinutes / 60;
 }
 
 export function isHoliday(date: Date): boolean {
-  // This is a simplified holiday check
-  // In a real application, you might want to use a proper holiday API or database
-  const holidays: Date[] = [
-    // Example: New Year's Day, etc.
-    // You can add more holidays here
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const day = date.getDate();
+
+  // 國定假日列表
+  const holidays = [
+    // 元旦
+    new Date(year, 0, 1),
+    // 228和平紀念日
+    new Date(year, 1, 28),
+    // 清明節 (通常在4月4日或5日，簡化為4月5日)
+    new Date(year, 3, 5),
+    // 端午節 (農曆5月5日，簡化為6月)
+    new Date(year, 5, 22), // 2024年端午節，之後需要動態計算
+    // 中秋節 (農曆8月15日，簡化為9月)
+    new Date(year, 8, 17), // 2024年中秋節，之後需要動態計算
+    // 國慶日
+    new Date(year, 9, 10),
+    // 春節 (農曆新年，簡化為1月底)
+    new Date(year, 1, 10), // 2024年春節，之後需要動態計算
+    new Date(year, 1, 11),
+    new Date(year, 1, 12),
   ];
 
-  return holidays.some(holiday => isSameDay(date, holiday)) || isWeekend(date);
+  // 檢查是否為國定假日
+  const isNationalHoliday = holidays.some(holiday =>
+    holiday.getFullYear() === year &&
+    holiday.getMonth() === month &&
+    holiday.getDate() === day
+  );
+
+  return isNationalHoliday || isWeekend(date);
+}
+
+export function getHolidayName(date: Date): string | null {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const day = date.getDate();
+
+  // 國定假日映射
+  const holidayMap: { [key: string]: string } = {
+    '0-1': '元旦',
+    '1-28': '228',
+    '3-5': '清明',
+    '5-22': '端午',
+    '8-17': '中秋',
+    '9-10': '國慶',
+    '1-10': '春節',
+    '1-11': '春節',
+    '1-12': '春節',
+  };
+
+  const key = `${month}-${day}`;
+  return holidayMap[key] || null;
 }
 
 export function calculateRegularHours(totalHours: number): number {

@@ -2,20 +2,43 @@ const SETTINGS_KEY = 'salary_calculator_settings';
 const MONTHLY_DATA_PREFIX = 'salary_calculator_month_';
 
 export interface Settings {
-  hourlyRate: number;
-  globalBreakMinutes: number;
+  batchDefaults: {
+    startTime: string;
+    endTime: string;
+    breakMinutes: number;
+    hourlyRate: number;
+    selectedWeekdays: number[];
+  };
 }
 
 export function loadSettings(): Settings {
   try {
     const stored = localStorage.getItem(SETTINGS_KEY);
     if (stored) {
-      return { ...{ hourlyRate: 196, globalBreakMinutes: 60 }, ...JSON.parse(stored) };
+      const parsed = JSON.parse(stored);
+      return {
+        batchDefaults: {
+          startTime: '09:00',
+          endTime: '18:00',
+          breakMinutes: 60,
+          hourlyRate: 196,
+          selectedWeekdays: [1, 2, 3, 4, 5],
+          ...parsed.batchDefaults
+        }
+      };
     }
   } catch (error) {
     console.error('Error loading settings:', error);
   }
-  return { hourlyRate: 196, globalBreakMinutes: 60 };
+  return {
+    batchDefaults: {
+      startTime: '09:00',
+      endTime: '18:00',
+      breakMinutes: 60,
+      hourlyRate: 196,
+      selectedWeekdays: [1, 2, 3, 4, 5]
+    }
+  };
 }
 
 export function saveSettings(settings: Settings): void {
