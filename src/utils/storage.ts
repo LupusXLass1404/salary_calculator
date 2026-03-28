@@ -2,6 +2,8 @@ const SETTINGS_KEY = 'salary_calculator_settings';
 const MONTHLY_DATA_PREFIX = 'salary_calculator_month_';
 
 export interface Settings {
+  hourlyRate: number;
+  globalBreakMinutes: number;
   batchDefaults: {
     startTime: string;
     endTime: string;
@@ -17,6 +19,8 @@ export function loadSettings(): Settings {
     if (stored) {
       const parsed = JSON.parse(stored);
       return {
+        hourlyRate: parsed.hourlyRate ?? 196,
+        globalBreakMinutes: parsed.globalBreakMinutes ?? 0,
         batchDefaults: {
           startTime: '09:00',
           endTime: '18:00',
@@ -31,6 +35,8 @@ export function loadSettings(): Settings {
     console.error('Error loading settings:', error);
   }
   return {
+    hourlyRate: 196,
+    globalBreakMinutes: 0,
     batchDefaults: {
       startTime: '09:00',
       endTime: '18:00',

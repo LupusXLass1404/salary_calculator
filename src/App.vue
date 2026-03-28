@@ -1,216 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { format } from 'date-fns';
+import { useAppStore } from './store/app';
 import Calendar from './components/Calendar.vue';
 import WorkEntryForm from './components/WorkEntryForm.vue';
 import BatchWorkEntryForm from './components/BatchWorkEntryForm.vue';
-import { loadSettings, saveSettings as saveSettingsUtil, loadMonthData, saveMonthData, exportData as exportDataUtil, importData as importDataUtil, loadMonthlyData, saveMonthlyData } from './utils/storage';
-import { calculateSalary, calculateMonthlyTotal } from './utils/calculations';
 
-const currentMonth = ref(format(new Date(), 'yyyy-MM'));
-const selectedDate = ref<string | null>(null);
-const selectedEntry = ref<any>(null);
-const showForm = ref(false);
-const isEditingMode = ref(false);
-
-const settings = ref(loadSettings());
-
-const refreshCalendar = ref(0);
-const monthlyData = ref<Record<string, any>>({});
-
-const currentMonthFormatted = computed(() => {
-  const [year, month] = currentMonth.value.split('-');
-  return `${year}年${month}月`;
-});
-
-const monthlyTotal = computed(() => {
-  return calculateMonthlyTotal(monthlyData.value);
-});
-
-function loadCurrentMonthData() {
-  monthlyData.value = loadMonthData(currentMonth.value);
-}
-
-function onBatchSettingsChanged(newBatchDefaults: any) {
-  settings.value.batchDefaults = {
-    ...settings.value.batchDefaults,
-    ...newBatchDefaults
-  };
-  saveSettings();
-}
-
-function onDateSelected(date: string) {
-  selectedDate.value = date;
-  selectedEntry.value = monthlyData.value[date] || null;
-  showForm.value = true;
-}
-
-function onMonthChanged(month: string) {
-  currentMonth.value = month;
-  loadCurrentMonthData();
-}
-
-function onEntryUpdated(date: string, entry: any) {
-  if (selectedDate.value === date) {
-    selectedEntry.value = entry;
-  }
-  monthlyData.value[date] = entry;
-  saveMonthData(currentMonth.value, monthlyData.value);
-}
-
-function onEntryDeleted(date: string) {
-  delete monthlyData.value[date];
-  saveMonthData(currentMonth.value, monthlyData.value);
-}
-
-function onSaveEntry(entry: any) {
-  if (selectedDate.value) {
-    monthlyData.value[selectedDate.value] = entry;
-    saveMonthData(currentMonth.value, monthlyData.value);
-    refreshCalendar.value++; // 立即通知 Calendar 重載
-    closeForm();
-  }
-}
-
-function onDeleteEntry() {
-  if (selectedDate.value) {
-    delete monthlyData.value[selectedDate.value];
-    saveMonthData(currentMonth.value, monthlyData.value);
-    refreshCalendar.value++; // 立即通知 Calendar 重載
-    closeForm();
-  }
-}
-
-function closeForm() {
-  showForm.value = false;
-  selectedDate.value = null;
-  selectedEntry.value = null;
-}
-
-function saveSettings() {
-  saveSettingsUtil(settings.value);
-}
-
-function exportData() {
-  const data = exportDataUtil();
-  const blob = new Blob([data], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = getExportFilename();
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-function getExportFilename(): string {
-  const now = new Date();
-  return `salary-data-${format(now, 'yyyy-MM-dd-HHmm')}.json`;
-}
-
-function importData(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const content = e.target?.result as string;
-    if (content && importDataUtil(content)) {
-      // Reload settings and current month data
-      settings.value = loadSettings();
-      loadCurrentMonthData();
-
-      // Clean up old calculated fields from imported data
-      cleanUpCalculatedFields();
-
-      alert('資料匯入成功！');
-    } else {
-      alert('資料匯入失敗，請檢查檔案格式。');
-    }
-  };
-  reader.readAsText(file);
-}
-
-function cleanUpCalculatedFields() {
-  const allData = loadMonthlyData();
-  let hasChanges = false;
-
-  for (const month in allData) {
-    for (const date in allData[month]) {
-      const entry = allData[month][date];
-
-      // Remove old calculated fields
-      if (entry.calculatedHours !== undefined) {
-        delete entry.calculatedHours;
-        hasChanges = true;
-      }
-      if (entry.regularPay !== undefined) {
-        delete entry.regularPay;
-        hasChanges = true;
-      }
-      if (entry.overtimePay !== undefined) {
-        delete entry.overtimePay;
-        hasChanges = true;
-      }
-      if (entry.holidayPay !== undefined) {
-        delete entry.holidayPay;
-        hasChanges = true;
-      }
-      if (entry.totalPay !== undefined) {
-        delete entry.totalPay;
-        hasChanges = true;
-      }
-      // Remove old isHoliday field since we now use automatic detection
-      if (entry.isHoliday !== undefined) {
-        delete entry.isHoliday;
-        hasChanges = true;
-      }
-
-      // Ensure required fields exist
-      if (entry.start && entry.hourlyRate === undefined) {
-        entry.hourlyRate = 196; // Default hourly rate
-        hasChanges = true;
-      }
-    }
-  }
-
-  if (hasChanges) {
-    saveMonthlyData(allData);
-    loadCurrentMonthData(); // Refresh current month data
-  }
-}
-
-function onApplyBatchEntry(data: { dates: string[], startTime: string, endTime: string, breakMinutes: number, hourlyRate: number }) {
-  let addedCount = 0;
-
-  data.dates.forEach((dateStr) => {
-    // 檢查該日期是否已有記錄
-    if (!monthlyData.value[dateStr]) {
-      const entry: any = {
-        start: data.startTime,
-        end: data.endTime,
-        breakMinutes: data.breakMinutes,
-        hourlyRate: data.hourlyRate,
-        date: dateStr  // 添加日期屬性供計算使用
-      };
-
-      monthlyData.value[dateStr] = entry;
-      addedCount++;
-    }
-  });
-
-  if (addedCount > 0) {
-    saveMonthData(currentMonth.value, monthlyData.value);
-    refreshCalendar.value++; // 立即通知 Calendar 重載
-    loadCurrentMonthData(); // 刷新日曆顯示
-  }
-}
-
-onMounted(() => {
-  cleanUpCalculatedFields(); // Clean up old data on startup
-  loadCurrentMonthData();
-});
+const appStore = useAppStore();
 </script>
 
 <template>
@@ -219,68 +13,76 @@ onMounted(() => {
       <h1>薪水計算器</h1>
       <div class="settings-bar">
         <div class="action-buttons">
-          <button @click="isEditingMode = !isEditingMode" class="edit-mode-button" :class="{ active: isEditingMode }">
-            <span class="button-icon">{{ isEditingMode ? '✓' : '✏️' }}</span>
-            {{ isEditingMode ? '完成編輯' : '編輯時間' }}
+          <button @click="appStore.isEditingMode = !appStore.isEditingMode" class="edit-mode-button"
+            :class="{ active: appStore.isEditingMode }">
+            <span class="button-icon">{{ appStore.isEditingMode ? '✓' : '✏️' }}</span>
+            {{ appStore.isEditingMode ? '完成編輯' : '編輯時間' }}
           </button>
-          <button @click="exportData" class="export-button">
+          <button @click="appStore.exportData" class="export-button">
             <span class="button-icon">📤</span>
             匯出資料
           </button>
           <label for="importFile" class="import-button">
             <span class="button-icon">📥</span>
             匯入資料
-            <input id="importFile" type="file" accept=".json" @change="importData" style="display: none;" />
+            <input id="importFile" type="file" accept=".json" @change="appStore.importData" style="display: none;" />
           </label>
         </div>
       </div>
     </header>
 
     <main class="app-main">
-      <BatchWorkEntryForm :default-break-minutes="settings.globalBreakMinutes" :batch-defaults="settings.batchDefaults"
-        @apply-batch="(data) => onApplyBatchEntry(data)" @settings-changed="onBatchSettingsChanged" />
+      <BatchWorkEntryForm :default-break-minutes="appStore.settings.globalBreakMinutes"
+        :batch-defaults="appStore.settings.batchDefaults" @apply-batch="appStore.onApplyBatchEntry"
+        @settings-changed="appStore.onBatchSettingsChanged" />
 
       <div class="calendar-section">
-        <Calendar :current-month="currentMonth" :hourly-rate="settings.hourlyRate" :is-editing-mode="isEditingMode"
-          :refresh-key="refreshCalendar" @date-selected="onDateSelected" @month-changed="onMonthChanged"
-          @entry-updated="onEntryUpdated" @entry-deleted="onEntryDeleted" />
+        <Calendar :current-month="appStore.currentMonth" :hourly-rate="appStore.settings.hourlyRate"
+          :is-editing-mode="appStore.isEditingMode" :refresh-key="appStore.refreshCalendar"
+          @date-selected="appStore.onDateSelected" @month-changed="appStore.onMonthChanged"
+          @entry-updated="appStore.onEntryUpdated" @entry-deleted="appStore.onEntryDeleted" />
       </div>
 
       <div class="summary-section">
-        <h2>{{ currentMonthFormatted }} 總計</h2>
+        <h2>{{ appStore.currentMonthFormatted }} 總計</h2>
         <div class="summary-grid">
           <div class="summary-item">
             <span class="label">總工時:</span>
-            <span class="value">{{ isNaN(monthlyTotal.totalHours) ? '0.0' : monthlyTotal.totalHours.toFixed(1) }}
+            <span class="value">{{ isNaN(appStore.monthlyTotal.totalHours) ? '0.0' :
+              appStore.monthlyTotal.totalHours.toFixed(1) }}
               小時</span>
           </div>
           <div class="summary-item">
             <span class="label">正常工資:</span>
-            <span class="value">${{ isNaN(monthlyTotal.regularPay) ? '0' : monthlyTotal.regularPay.toLocaleString()
+            <span class="value">${{ isNaN(appStore.monthlyTotal.regularPay) ? '0' :
+              appStore.monthlyTotal.regularPay.toLocaleString()
               }}</span>
           </div>
           <div class="summary-item">
             <span class="label">加班工資:</span>
-            <span class="value">${{ isNaN(monthlyTotal.overtimePay) ? '0' : monthlyTotal.overtimePay.toLocaleString()
+            <span class="value">${{ isNaN(appStore.monthlyTotal.overtimePay) ? '0' :
+              appStore.monthlyTotal.overtimePay.toLocaleString()
               }}</span>
           </div>
           <div class="summary-item">
             <span class="label">假日工資:</span>
-            <span class="value">${{ isNaN(monthlyTotal.holidayPay) ? '0' : monthlyTotal.holidayPay.toLocaleString()
+            <span class="value">${{ isNaN(appStore.monthlyTotal.holidayPay) ? '0' :
+              appStore.monthlyTotal.holidayPay.toLocaleString()
               }}</span>
           </div>
           <div class="summary-item total">
             <span class="label">總薪資:</span>
-            <span class="value">${{ isNaN(monthlyTotal.totalPay) ? '0' : monthlyTotal.totalPay.toLocaleString()
+            <span class="value">${{ isNaN(appStore.monthlyTotal.totalPay) ? '0' :
+              appStore.monthlyTotal.totalPay.toLocaleString()
               }}</span>
           </div>
         </div>
       </div>
     </main>
 
-    <WorkEntryForm v-if="showForm" :entry="selectedEntry" :date="selectedDate"
-      :default-break-minutes="settings.globalBreakMinutes" @save="onSaveEntry" @delete="onDeleteEntry"
-      @close="closeForm" />
+    <WorkEntryForm v-if="appStore.showForm" :entry="appStore.selectedEntry" :date="appStore.selectedDate"
+      :default-break-minutes="appStore.settings.globalBreakMinutes" @save="appStore.onSaveEntry"
+      @delete="appStore.onDeleteEntry" @close="appStore.closeForm" />
   </div>
 </template>
 
