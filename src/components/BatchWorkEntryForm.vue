@@ -101,34 +101,40 @@ const weekdayCheckers: Array<(date: Date) => boolean> = [
     isSunday
 ];
 
+/**
+ * 切換工作日選擇
+ */
 function toggleWeekday(day: number) {
-    const index = selectedWeekdays.value.indexOf(day);
+    const index = selectedWeekdays.value.indexOf(day)
     if (index > -1) {
-        selectedWeekdays.value.splice(index, 1);
+        selectedWeekdays.value.splice(index, 1)
     } else {
-        selectedWeekdays.value.push(day);
-        selectedWeekdays.value.sort((a, b) => a - b);
+        selectedWeekdays.value.push(day)
+        selectedWeekdays.value.sort((a, b) => a - b)
     }
 }
 
+/**
+ * 獲取匹配的日期列表
+ */
 function getMatchingDates(): string[] {
-    const dates: string[] = [];
-    const start = parseISO(batchData.value.startDate);
-    const end = parseISO(batchData.value.endDate);
+    const dates: string[] = []
+    const start = parseISO(batchData.value.startDate)
+    const end = parseISO(batchData.value.endDate)
 
-    const allDays = eachDayOfInterval({ start, end });
+    const allDays = eachDayOfInterval({ start, end })
 
     allDays.forEach((day) => {
         for (let i = 0; i < weekdayCheckers.length; i++) {
-            const checker = weekdayCheckers[i];
+            const checker = weekdayCheckers[i]
             if (checker && selectedWeekdays.value.includes(i + 1) && checker(day)) {
-                dates.push(format(day, 'yyyy-MM-dd'));
-                break;
+                dates.push(format(day, 'yyyy-MM-dd'))
+                break
             }
         }
-    });
+    })
 
-    return dates;
+    return dates
 }
 
 const previewInfo = computed(() => {
@@ -139,42 +145,48 @@ const previewInfo = computed(() => {
     return `將為 ${dates.length} 天填寫工作時間 (${batchData.value.startTime} ~ ${batchData.value.endTime}, 休息 ${batchData.value.breakMinutes} 分鐘)`;
 });
 
+/**
+ * 應用批量條目
+ */
 function applyBatchEntry() {
     if (!batchData.value.startTime || !batchData.value.endTime) {
-        alert('請填寫開始和結束時間');
-        return;
+        alert('請填寫開始和結束時間')
+        return
     }
 
     if (selectedWeekdays.value.length === 0) {
-        alert('請選擇至少一個工作日');
-        return;
+        alert('請選擇至少一個工作日')
+        return
     }
 
-    const dates = getMatchingDates();
+    const dates = getMatchingDates()
     if (dates.length === 0) {
-        alert('沒有符合條件的日期');
-        return;
+        alert('沒有符合條件的日期')
+        return
     }
 
     emit('apply-batch', {
         dates,
         startTime: batchData.value.startTime,
         endTime: batchData.value.endTime,
-        breakMinutes: batchData.value.breakMinutes,
-    });
+        breakMinutes: batchData.value.breakMinutes
+    })
 
-    alert(`成功將工作時間套用到 ${dates.length} 天`);
+    alert(`成功將工作時間套用到 ${dates.length} 天`)
 }
 
+/**
+ * 重置表單
+ */
 function resetForm() {
-    selectedWeekdays.value = [...settingsStore.settings.batchDefaults.selectedWeekdays];
+    selectedWeekdays.value = [...settingsStore.settings.batchDefaults.selectedWeekdays]
     batchData.value = {
         startTime: settingsStore.settings.batchDefaults.startTime,
         endTime: settingsStore.settings.batchDefaults.endTime,
         breakMinutes: settingsStore.settings.batchDefaults.breakMinutes,
         startDate: format(new Date(), 'yyyy-MM-dd'),
-        endDate: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
-    };
+        endDate: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd')
+    }
 }
 
 // Watch for settings changes and emit update

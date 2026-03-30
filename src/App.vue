@@ -11,20 +11,23 @@ const salaryStore = useSalaryStore();
 const settingsStore = useSettingsStore();
 const uiStore = useUiStore();
 
+/**
+ * 處理文件匯入
+ */
 function handleImport(event: Event) {
-  const target = event.target as HTMLInputElement;
-  const file = target.files?.[0];
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
   if (file) {
-    const reader = new FileReader();
+    const reader = new FileReader()
     reader.onload = (e) => {
-      const jsonData = e.target?.result as string;
+      const jsonData = e.target?.result as string
       if (jsonData) {
-        settingsStore.importData(jsonData);
+        settingsStore.importData(jsonData)
         // Reload data after import
-        salaryStore.loadCurrentMonthData();
+        salaryStore.loadCurrentMonthData()
       }
-    };
-    reader.readAsText(file);
+    }
+    reader.readAsText(file)
   }
 }
 </script>

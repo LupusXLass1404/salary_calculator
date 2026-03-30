@@ -12,25 +12,31 @@ export interface WorkEntry {
   totalPay?: number;
 }
 
+/**
+ * 計算工作時數
+ */
 export function calculateWorkHours(startTime: string, endTime: string, breakMinutes: number = 0): number {
-  const start = parse(startTime, 'HH:mm', new Date());
-  const end = parse(endTime, 'HH:mm', new Date());
+  const start = parse(startTime, 'HH:mm', new Date())
+  const end = parse(endTime, 'HH:mm', new Date())
 
   // Handle overnight shifts
   if (end < start) {
-    end.setDate(end.getDate() + 1);
+    end.setDate(end.getDate() + 1)
   }
 
-  const totalMinutes = differenceInMinutes(end, start);
-  const workMinutes = Math.max(0, totalMinutes - (breakMinutes || 0));
+  const totalMinutes = differenceInMinutes(end, start)
+  const workMinutes = Math.max(0, totalMinutes - (breakMinutes || 0))
 
-  return workMinutes / 60;
+  return workMinutes / 60
 }
 
+/**
+ * 檢查是否為假日
+ */
 export function isHoliday(date: Date): boolean {
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const day = date.getDate();
+  const year = date.getFullYear()
+  const month = date.getMonth()
+  const day = date.getDate()
 
   // 國定假日列表
   const holidays = [
@@ -49,23 +55,26 @@ export function isHoliday(date: Date): boolean {
     // 春節 (農曆新年，簡化為1月底)
     new Date(year, 1, 10), // 2024年春節，之後需要動態計算
     new Date(year, 1, 11),
-    new Date(year, 1, 12),
-  ];
+    new Date(year, 1, 12)
+  ]
 
   // 檢查是否為國定假日
   const isNationalHoliday = holidays.some(holiday =>
     holiday.getFullYear() === year &&
     holiday.getMonth() === month &&
     holiday.getDate() === day
-  );
+  )
 
-  return isNationalHoliday || isWeekend(date);
+  return isNationalHoliday || isWeekend(date)
 }
 
+/**
+ * 獲取假日名稱
+ */
 export function getHolidayName(date: Date): string | null {
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const day = date.getDate();
+  const year = date.getFullYear()
+  const month = date.getMonth()
+  const day = date.getDate()
 
   // 國定假日映射
   const holidayMap: { [key: string]: string } = {
@@ -77,24 +86,33 @@ export function getHolidayName(date: Date): string | null {
     '9-10': '國慶',
     '1-10': '春節',
     '1-11': '春節',
-    '1-12': '春節',
+    '1-12': '春節'
   };
 
-  const key = `${month}-${day}`;
-  return holidayMap[key] || null;
+  const key = `${month}-${day}`
+  return holidayMap[key] || null
 }
 
+/**
+ * 計算正常工作時數
+ */
 export function calculateRegularHours(totalHours: number): number {
   // First 8 hours are regular hours
-  return Math.min(totalHours, 8);
+  return Math.min(totalHours, 8)
 }
 
+/**
+ * 計算加班時數
+ */
 export function calculateOvertimeHours(totalHours: number): number {
   // Hours beyond 8 are overtime
-  return Math.max(0, totalHours - 8);
+  return Math.max(0, totalHours - 8)
 }
 
+/**
+ * 計算假日時數
+ */
 export function calculateHolidayHours(totalHours: number, isHoliday: boolean): number {
   // All hours on holidays are holiday pay
-  return isHoliday ? totalHours : 0;
+  return isHoliday ? totalHours : 0
 }

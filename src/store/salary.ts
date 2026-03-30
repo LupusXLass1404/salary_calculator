@@ -27,10 +27,16 @@ export const useSalaryStore = defineStore('salary', () => {
     })
 
     // Actions
+    /**
+     * 加載當前月份的數據
+     */
     function loadCurrentMonthData() {
         monthlyData.value = loadMonthData(currentMonth.value)
     }
 
+    /**
+     * 保存工作條目
+     */
     function onSaveEntry(entry: any) {
         if (selectedDate.value) {
             monthlyData.value[selectedDate.value] = entry
@@ -40,6 +46,9 @@ export const useSalaryStore = defineStore('salary', () => {
         }
     }
 
+    /**
+     * 刪除工作條目
+     */
     function onDeleteEntry() {
         if (selectedDate.value) {
             delete monthlyData.value[selectedDate.value]
@@ -49,6 +58,9 @@ export const useSalaryStore = defineStore('salary', () => {
         }
     }
 
+    /**
+     * 批量應用工作條目
+     */
     function onApplyBatchEntry(data: { dates: string[], startTime: string, endTime: string, breakMinutes: number }) {
         let addedCount = 0
 
@@ -75,22 +87,31 @@ export const useSalaryStore = defineStore('salary', () => {
         }
     }
 
+    /**
+     * 當月份改變時處理
+     */
     function onMonthChanged(month: string) {
-        currentMonth.value = month;
-        loadCurrentMonthData();
+        currentMonth.value = month
+        loadCurrentMonthData()
     }
 
+    /**
+     * 當條目更新時處理
+     */
     function onEntryUpdated(date: string, entry: any) {
         if (selectedDate.value === date) {
-            selectedEntry.value = entry;
+            selectedEntry.value = entry
         }
-        monthlyData.value[date] = entry;
-        saveMonthData(currentMonth.value, monthlyData.value);
+        monthlyData.value[date] = entry
+        saveMonthData(currentMonth.value, monthlyData.value)
     }
 
+    /**
+     * 當條目刪除時處理
+     */
     function onEntryDeleted(date: string) {
-        delete monthlyData.value[date];
-        saveMonthData(currentMonth.value, monthlyData.value);
+        delete monthlyData.value[date]
+        saveMonthData(currentMonth.value, monthlyData.value)
     }
 
     return {

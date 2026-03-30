@@ -121,63 +121,90 @@ const editForm = ref({
     breakMinutes: 60
 });
 
+/**
+ * 加載當前月份的數據
+ */
 function loadCurrentMonthData() {
-    monthData.value = loadMonthData(salaryStore.currentMonth);
+    monthData.value = loadMonthData(salaryStore.currentMonth)
 }
 
 // Watch for refreshKey changes to reload data
 watch(() => uiStore.refreshCalendar, () => {
-    loadCurrentMonthData();
-});
+    loadCurrentMonthData()
+})
 
+/**
+ * 檢查指定日期是否有工作條目
+ */
 function hasWorkEntry(dateStr: string): boolean {
-    return !!monthData.value[dateStr];
+    return !!monthData.value[dateStr]
 }
 
+/**
+ * 獲取指定日期的工作時數
+ */
 function getWorkHours(dateStr: string): number {
-    const entry = monthData.value[dateStr];
-    if (!entry || !entry.start || !entry.end) return 0;
+    const entry = monthData.value[dateStr]
+    if (!entry || !entry.start || !entry.end) return 0
 
-    return Math.round(calculateWorkHours(entry.start, entry.end, entry.breakMinutes || 0) * 10) / 10;
+    return Math.round(calculateWorkHours(entry.start, entry.end, entry.breakMinutes || 0) * 10) / 10
 }
 
+/**
+ * 獲取指定日期的開始時間
+ */
 function getStartTime(dateStr: string): string {
-    const entry = monthData.value[dateStr];
-    return entry?.start || '--:--';
+    const entry = monthData.value[dateStr]
+    return entry?.start || '--:--'
 }
 
+/**
+ * 獲取指定日期的結束時間
+ */
 function getEndTime(dateStr: string): string {
-    const entry = monthData.value[dateStr];
-    return entry?.end || '--:--';
+    const entry = monthData.value[dateStr]
+    return entry?.end || '--:--'
 }
 
+/**
+ * 獲取指定日期的假日名稱
+ */
 function getHolidayNameForDate(dateStr: string): string | null {
-    const date = new Date(dateStr);
-    return getHolidayName(date);
+    const date = new Date(dateStr)
+    return getHolidayName(date)
 }
 
+/**
+ * 處理日期點擊事件
+ */
 function handleDateClick(dateStr: string) {
     if (isEditingMode.value && hasWorkEntry(dateStr)) {
-        editEntry(dateStr);
+        editEntry(dateStr)
     } else if (!isEditingMode.value) {
-        emit('date-selected', dateStr);
+        emit('date-selected', dateStr)
     }
 }
 
+/**
+ * 編輯指定日期的條目
+ */
 function editEntry(dateStr: string) {
-    const entry = monthData.value[dateStr];
+    const entry = monthData.value[dateStr]
     if (entry) {
-        editingDate.value = dateStr;
+        editingDate.value = dateStr
         editForm.value = {
             start: entry.start || '',
             end: entry.end || '',
             breakMinutes: entry.breakMinutes !== undefined ? entry.breakMinutes : 60
-        };
+        }
     }
 }
 
+/**
+ * 保存編輯的條目
+ */
 function saveEdit() {
-    if (!editingDate.value) return;
+    if (!editingDate.value) return
 
     const entry = {
         ...monthData.value[editingDate.value],
@@ -185,54 +212,66 @@ function saveEdit() {
         end: editForm.value.end,
         breakMinutes: editForm.value.breakMinutes,
         date: editingDate.value  // 確保有日期屬性
-    };
+    }
 
-    monthData.value[editingDate.value] = entry;
-    emit('entry-updated', editingDate.value, entry);
-    editingDate.value = null;
+    monthData.value[editingDate.value] = entry
+    emit('entry-updated', editingDate.value, entry)
+    editingDate.value = null
 }
 
+/**
+ * 取消編輯
+ */
 function cancelEdit() {
-    editingDate.value = null;
+    editingDate.value = null
 }
 
+/**
+ * 刪除條目
+ */
 function deleteEntry() {
-    if (!editingDate.value) return;
+    if (!editingDate.value) return
 
     if (confirm(`確定要刪除 ${editingDate.value} 的工作記錄嗎？`)) {
-        const dateToDelete = editingDate.value;
-        delete monthData.value[dateToDelete];
-        emit('entry-deleted', dateToDelete);
-        editingDate.value = null;
+        const dateToDelete = editingDate.value
+        delete monthData.value[dateToDelete]
+        emit('entry-deleted', dateToDelete)
+        editingDate.value = null
     }
 }
 
+/**
+ * 切換到上一個月
+ */
 function previousMonth() {
-    const parts = salaryStore.currentMonth.split('-');
-    if (parts.length !== 2) return;
-    const yearStr = parts[0];
-    const monthStr = parts[1];
-    if (!yearStr || !monthStr) return;
-    const year = parseInt(yearStr, 10);
-    const month = parseInt(monthStr, 10) - 1;
-    if (isNaN(year) || isNaN(month)) return;
+    const parts = salaryStore.currentMonth.split('-')
+    if (parts.length !== 2) return
+    const yearStr = parts[0]
+    const monthStr = parts[1]
+    if (!yearStr || !monthStr) return
+    const year = parseInt(yearStr, 10)
+    const month = parseInt(monthStr, 10) - 1
+    if (isNaN(year) || isNaN(month)) return
 
-    const newMonth = format(subMonths(new Date(year, month), 1), 'yyyy-MM');
-    emit('month-changed', newMonth);
+    const newMonth = format(subMonths(new Date(year, month), 1), 'yyyy-MM')
+    emit('month-changed', newMonth)
 }
 
+/**
+ * 切換到下一個月
+ */
 function nextMonth() {
-    const parts = salaryStore.currentMonth.split('-');
-    if (parts.length !== 2) return;
-    const yearStr = parts[0];
-    const monthStr = parts[1];
-    if (!yearStr || !monthStr) return;
-    const year = parseInt(yearStr, 10);
-    const month = parseInt(monthStr, 10) - 1;
-    if (isNaN(year) || isNaN(month)) return;
+    const parts = salaryStore.currentMonth.split('-')
+    if (parts.length !== 2) return
+    const yearStr = parts[0]
+    const monthStr = parts[1]
+    if (!yearStr || !monthStr) return
+    const year = parseInt(yearStr, 10)
+    const month = parseInt(monthStr, 10) - 1
+    if (isNaN(year) || isNaN(month)) return
 
-    const newMonth = format(addMonths(new Date(year, month), 1), 'yyyy-MM');
-    emit('month-changed', newMonth);
+    const newMonth = format(addMonths(new Date(year, month), 1), 'yyyy-MM')
+    emit('month-changed', newMonth)
 }
 
 // Watch for month changes

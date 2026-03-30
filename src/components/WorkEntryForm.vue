@@ -124,26 +124,38 @@ const calculation = computed(() => {
     };
 });
 
+/**
+ * 保存工作條目
+ */
 function save() {
     const entry = {
         ...formData.value,
         date: salaryStore.selectedDate
-    };
-    emit('save', entry);
+    }
+    emit('save', entry)
 }
 
+/**
+ * 刪除工作條目
+ */
 function deleteEntry() {
     if (confirm('確定要刪除這筆記錄嗎？')) {
-        emit('delete');
+        emit('delete')
     }
 }
 
+/**
+ * 關閉表單
+ */
 function close() {
-    emit('close');
+    emit('close')
 }
 
+/**
+ * 處理遮罩點擊事件
+ */
 function handleOverlayClick() {
-    close();
+    close()
 }
 
 // Watch for entry changes to populate form

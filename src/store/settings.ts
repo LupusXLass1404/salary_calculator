@@ -10,24 +10,36 @@ export const useSettingsStore = defineStore('count', () => {
 
 
     // Actions
+    /**
+     * 當批量設定改變時處理
+     */
     function onBatchSettingsChanged(newBatchDefaults: any) {
         settings.value.batchDefaults = {
             ...settings.value.batchDefaults,
             ...newBatchDefaults
-        };
-        saveSettings();
+        }
+        saveSettings()
     }
 
+    /**
+     * 保存設定
+     */
     function saveSettings() {
-        saveSettingsUtil(settings.value);
+        saveSettingsUtil(settings.value)
     }
 
+    /**
+     * 匯出數據
+     */
     function exportData() {
-        return exportDataUtil();
+        return exportDataUtil()
     }
 
+    /**
+     * 匯入數據
+     */
     function importData(jsonData: string) {
-        return importDataUtil(jsonData);
+        return importDataUtil(jsonData)
     }
 
 
