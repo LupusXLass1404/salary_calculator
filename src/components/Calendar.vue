@@ -64,15 +64,6 @@ const salaryStore = useSalaryStore();
 const settingsStore = useSettingsStore();
 const uiStore = useUiStore();
 
-interface Emits {
-    (e: 'date-selected', date: string): void;
-    (e: 'month-changed', month: string): void;
-    (e: 'entry-updated', date: string, entry: any): void;
-    (e: 'entry-deleted', date: string): void;
-}
-
-const emit = defineEmits<Emits>();
-
 const currentDate = ref(new Date());
 
 const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
@@ -181,7 +172,7 @@ function handleDateClick(dateStr: string) {
     if (isEditingMode.value && hasWorkEntry(dateStr)) {
         editEntry(dateStr)
     } else if (!isEditingMode.value) {
-        emit('date-selected', dateStr)
+        uiStore.onDateSelected(dateStr)
     }
 }
 
@@ -215,7 +206,7 @@ function saveEdit() {
     }
 
     monthData.value[editingDate.value] = entry
-    emit('entry-updated', editingDate.value, entry)
+    salaryStore.onEntryUpdated(editingDate.value, entry)
     editingDate.value = null
 }
 
@@ -235,7 +226,7 @@ function deleteEntry() {
     if (confirm(`確定要刪除 ${editingDate.value} 的工作記錄嗎？`)) {
         const dateToDelete = editingDate.value
         delete monthData.value[dateToDelete]
-        emit('entry-deleted', dateToDelete)
+        salaryStore.onEntryDeleted(dateToDelete)
         editingDate.value = null
     }
 }
@@ -254,7 +245,7 @@ function previousMonth() {
     if (isNaN(year) || isNaN(month)) return
 
     const newMonth = format(subMonths(new Date(year, month), 1), 'yyyy-MM')
-    emit('month-changed', newMonth)
+    salaryStore.onMonthChanged(newMonth)
 }
 
 /**
@@ -271,7 +262,7 @@ function nextMonth() {
     if (isNaN(year) || isNaN(month)) return
 
     const newMonth = format(addMonths(new Date(year, month), 1), 'yyyy-MM')
-    emit('month-changed', newMonth)
+    salaryStore.onMonthChanged(newMonth)
 }
 
 // Watch for month changes

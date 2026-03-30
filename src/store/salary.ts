@@ -3,11 +3,6 @@ import { ref, computed } from 'vue'
 import { format } from 'date-fns'
 import { loadMonthData, saveMonthData } from '@/utils/storage'
 import { calculateMonthlyTotal } from '@/utils/calculations'
-import { useSettingsStore } from '@/store/settings'
-import { useUiStore } from '@/store/ui'
-
-const settingsStore = useSettingsStore()
-const uiStore = useUiStore()
 
 export const useSalaryStore = defineStore('salary', () => {
     // State
@@ -37,11 +32,14 @@ export const useSalaryStore = defineStore('salary', () => {
     /**
      * 保存工作條目
      */
-    function onSaveEntry(entry: any) {
+    async function onSaveEntry(entry: any) {
         if (selectedDate.value) {
             monthlyData.value[selectedDate.value] = entry
             saveMonthData(currentMonth.value, monthlyData.value)
-            uiStore.refreshCalendar
+            // 通知 UI store 刷新和關閉表單
+            const { useUiStore } = await import('@/store/ui')
+            const uiStore = useUiStore()
+            uiStore.refreshCalendar++
             uiStore.closeForm()
         }
     }
@@ -49,10 +47,13 @@ export const useSalaryStore = defineStore('salary', () => {
     /**
      * 刪除工作條目
      */
-    function onDeleteEntry() {
+    async function onDeleteEntry() {
         if (selectedDate.value) {
             delete monthlyData.value[selectedDate.value]
             saveMonthData(currentMonth.value, monthlyData.value)
+            // 通知 UI store 刷新和關閉表單
+            const { useUiStore } = await import('@/store/ui')
+            const uiStore = useUiStore()
             uiStore.refreshCalendar++
             uiStore.closeForm()
         }
@@ -61,7 +62,7 @@ export const useSalaryStore = defineStore('salary', () => {
     /**
      * 批量應用工作條目
      */
-    function onApplyBatchEntry(data: { dates: string[], startTime: string, endTime: string, breakMinutes: number }) {
+    async function onApplyBatchEntry(data: { dates: string[], startTime: string, endTime: string, breakMinutes: number, hourlyRate: number }) {
         let addedCount = 0
 
         data.dates.forEach((dateStr) => {
@@ -71,7 +72,7 @@ export const useSalaryStore = defineStore('salary', () => {
                     start: data.startTime,
                     end: data.endTime,
                     breakMinutes: data.breakMinutes,
-                    hourlyRate: settingsStore.hourlyRate,
+                    hourlyRate: data.hourlyRate,
                     date: dateStr  // 添加日期屬性供計算使用
                 }
 
@@ -82,6 +83,9 @@ export const useSalaryStore = defineStore('salary', () => {
 
         if (addedCount > 0) {
             saveMonthData(currentMonth.value, monthlyData.value)
+            // 通知 UI store 刷新日曆
+            const { useUiStore } = await import('@/store/ui')
+            const uiStore = useUiStore()
             uiStore.refreshCalendar++ // 立即通知 Calendar 重載
             loadCurrentMonthData() // 刷新日曆顯示
         }

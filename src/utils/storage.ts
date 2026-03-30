@@ -11,6 +11,12 @@ export interface Settings {
     hourlyRate: number;
     selectedWeekdays: number[];
   };
+  userPreferences: {
+    startTime: string;
+    endTime: string;
+    breakMinutes: number;
+    hourlyRate: number;
+  };
 }
 
 /**
@@ -31,6 +37,13 @@ export function loadSettings(): Settings {
           hourlyRate: 196,
           selectedWeekdays: [1, 2, 3, 4, 5],
           ...parsed.batchDefaults
+        },
+        userPreferences: {
+          startTime: parsed.userPreferences?.startTime ?? '09:00',
+          endTime: parsed.userPreferences?.endTime ?? '18:00',
+          breakMinutes: parsed.userPreferences?.breakMinutes ?? 60,
+          hourlyRate: parsed.userPreferences?.hourlyRate ?? 196,
+          ...parsed.userPreferences
         }
       }
     }
@@ -46,6 +59,12 @@ export function loadSettings(): Settings {
       breakMinutes: 60,
       hourlyRate: 196,
       selectedWeekdays: [1, 2, 3, 4, 5]
+    },
+    userPreferences: {
+      startTime: '09:00',
+      endTime: '18:00',
+      breakMinutes: 60,
+      hourlyRate: 196
     }
   }
 }

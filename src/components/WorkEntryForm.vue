@@ -82,14 +82,6 @@ const salaryStore = useSalaryStore();
 const settingsStore = useSettingsStore();
 const uiStore = useUiStore();
 
-interface Emits {
-    (e: 'save', entry: any): void;
-    (e: 'delete'): void;
-    (e: 'close'): void;
-}
-
-const emit = defineEmits<Emits>();
-
 const formData = ref({
     start: '',
     end: '',
@@ -132,7 +124,16 @@ function save() {
         ...formData.value,
         date: salaryStore.selectedDate
     }
-    emit('save', entry)
+
+    // 保存用戶輸入偏好
+    settingsStore.saveUserPreferences({
+        startTime: formData.value.start,
+        endTime: formData.value.end,
+        breakMinutes: formData.value.breakMinutes,
+        hourlyRate: formData.value.hourlyRate
+    })
+
+    salaryStore.onSaveEntry(entry)
 }
 
 /**
@@ -140,7 +141,7 @@ function save() {
  */
 function deleteEntry() {
     if (confirm('確定要刪除這筆記錄嗎？')) {
-        emit('delete')
+        salaryStore.onDeleteEntry()
     }
 }
 
@@ -148,7 +149,7 @@ function deleteEntry() {
  * 關閉表單
  */
 function close() {
-    emit('close')
+    uiStore.closeForm()
 }
 
 /**
@@ -168,11 +169,12 @@ watch(() => salaryStore.selectedEntry, (newEntry) => {
             hourlyRate: newEntry.hourlyRate || 196
         };
     } else {
+        // 如果沒有選擇條目，使用用戶偏好
         formData.value = {
-            start: '',
-            end: '',
-            breakMinutes: settingsStore.settings.globalBreakMinutes,
-            hourlyRate: 196
+            start: settingsStore.settings.userPreferences.startTime,
+            end: settingsStore.settings.userPreferences.endTime,
+            breakMinutes: settingsStore.settings.userPreferences.breakMinutes,
+            hourlyRate: settingsStore.settings.userPreferences.hourlyRate
         };
     }
 }, { immediate: true });

@@ -38,6 +38,15 @@
                 </div>
             </div>
 
+            <!-- 時薪設定 -->
+            <div class="form-section">
+                <label>時薪:</label>
+                <div class="hourly-rate-input">
+                    <input v-model.number="batchData.hourlyRate" type="number" min="0" step="1" class="number-input" />
+                    元/小時
+                </div>
+            </div>
+
             <!-- 日期範圍選擇 -->
             <div class="form-section">
                 <label>應用範圍:</label>
@@ -72,13 +81,10 @@
 import { ref, computed, watch } from 'vue';
 import { eachDayOfInterval, parseISO, format, isMonday, isTuesday, isWednesday, isThursday, isFriday, isSaturday, isSunday } from 'date-fns';
 import { useSettingsStore } from '@/store/settings';
+import { useSalaryStore } from '@/store/salary';
 
 const settingsStore = useSettingsStore();
-
-const emit = defineEmits<{
-    'apply-batch': [data: { dates: string[], startTime: string, endTime: string, breakMinutes: number }];
-    'settings-changed': [settings: { startTime: string; endTime: string; breakMinutes: number; selectedWeekdays: number[] }];
-}>();
+const salaryStore = useSalaryStore();
 
 const weekdayNames = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
 const selectedWeekdays = ref<number[]>([...settingsStore.settings.batchDefaults.selectedWeekdays]);
@@ -87,6 +93,7 @@ const batchData = ref({
     startTime: settingsStore.settings.batchDefaults.startTime,
     endTime: settingsStore.settings.batchDefaults.endTime,
     breakMinutes: settingsStore.settings.batchDefaults.breakMinutes,
+    hourlyRate: settingsStore.settings.batchDefaults.hourlyRate,
     startDate: format(new Date(), 'yyyy-MM-dd'),
     endDate: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'), // 預設加30天
 });
@@ -142,7 +149,7 @@ const previewInfo = computed(() => {
     if (dates.length === 0) {
         return '沒有符合條件的日期';
     }
-    return `將為 ${dates.length} 天填寫工作時間 (${batchData.value.startTime} ~ ${batchData.value.endTime}, 休息 ${batchData.value.breakMinutes} 分鐘)`;
+    return `將為 ${dates.length} 天填寫工作時間 (${batchData.value.startTime} ~ ${batchData.value.endTime}, 休息 ${batchData.value.breakMinutes} 分鐘, 時薪 $${batchData.value.hourlyRate})`;
 });
 
 /**
@@ -165,11 +172,12 @@ function applyBatchEntry() {
         return
     }
 
-    emit('apply-batch', {
+    salaryStore.onApplyBatchEntry({
         dates,
         startTime: batchData.value.startTime,
         endTime: batchData.value.endTime,
-        breakMinutes: batchData.value.breakMinutes
+        breakMinutes: batchData.value.breakMinutes,
+        hourlyRate: batchData.value.hourlyRate
     })
 
     alert(`成功將工作時間套用到 ${dates.length} 天`)
@@ -184,44 +192,59 @@ function resetForm() {
         startTime: settingsStore.settings.batchDefaults.startTime,
         endTime: settingsStore.settings.batchDefaults.endTime,
         breakMinutes: settingsStore.settings.batchDefaults.breakMinutes,
+        hourlyRate: settingsStore.settings.batchDefaults.hourlyRate,
         startDate: format(new Date(), 'yyyy-MM-dd'),
         endDate: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd')
     }
 }
 
-// Watch for settings changes and emit update
+// Watch for settings changes and update store
 watch(() => batchData.value.startTime, (newVal) => {
-    emit('settings-changed', {
+    settingsStore.onBatchSettingsChanged({
         startTime: newVal,
         endTime: batchData.value.endTime,
         breakMinutes: batchData.value.breakMinutes,
+        hourlyRate: batchData.value.hourlyRate,
         selectedWeekdays: selectedWeekdays.value
     });
 });
 
 watch(() => batchData.value.endTime, (newVal) => {
-    emit('settings-changed', {
+    settingsStore.onBatchSettingsChanged({
         startTime: batchData.value.startTime,
         endTime: newVal,
         breakMinutes: batchData.value.breakMinutes,
+        hourlyRate: batchData.value.hourlyRate,
         selectedWeekdays: selectedWeekdays.value
     });
 });
 
 watch(() => batchData.value.breakMinutes, (newVal) => {
-    emit('settings-changed', {
+    settingsStore.onBatchSettingsChanged({
         startTime: batchData.value.startTime,
         endTime: batchData.value.endTime,
         breakMinutes: newVal,
+        hourlyRate: batchData.value.hourlyRate,
+        selectedWeekdays: selectedWeekdays.value
+    });
+});
+
+watch(() => batchData.value.hourlyRate, (newVal) => {
+    settingsStore.onBatchSettingsChanged({
+        startTime: batchData.value.startTime,
+        endTime: batchData.value.endTime,
+        breakMinutes: batchData.value.breakMinutes,
+        hourlyRate: newVal,
         selectedWeekdays: selectedWeekdays.value
     });
 });
 
 watch(() => selectedWeekdays.value, (newVal) => {
-    emit('settings-changed', {
+    settingsStore.onBatchSettingsChanged({
         startTime: batchData.value.startTime,
         endTime: batchData.value.endTime,
         breakMinutes: batchData.value.breakMinutes,
+        hourlyRate: batchData.value.hourlyRate,
         selectedWeekdays: [...newVal]
     });
 }, { deep: true });

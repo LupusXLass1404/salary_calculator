@@ -22,6 +22,17 @@ export const useSettingsStore = defineStore('count', () => {
     }
 
     /**
+     * 保存用戶輸入偏好
+     */
+    function saveUserPreferences(preferences: { startTime: string; endTime: string; breakMinutes: number; hourlyRate: number }) {
+        settings.value.userPreferences = {
+            ...settings.value.userPreferences,
+            ...preferences
+        }
+        saveSettings()
+    }
+
+    /**
      * 保存設定
      */
     function saveSettings() {
@@ -48,6 +59,7 @@ export const useSettingsStore = defineStore('count', () => {
         hourlyRate,
         globalBreakMinutes,
         onBatchSettingsChanged,
+        saveUserPreferences,
         saveSettings,
         exportData,
         importData

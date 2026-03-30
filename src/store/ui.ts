@@ -1,8 +1,5 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import { useSalaryStore } from '@/store/salary'
-
-const salaryStore = useSalaryStore()
 
 export const useUiStore = defineStore('ui', () => {
     // State
@@ -14,8 +11,11 @@ export const useUiStore = defineStore('ui', () => {
     /**
      * 關閉表單
      */
-    function closeForm() {
+    async function closeForm() {
         showForm.value = false
+        // 通知 salary store 重置選擇
+        const { useSalaryStore } = await import('@/store/salary')
+        const salaryStore = useSalaryStore()
         salaryStore.selectedDate = null
         salaryStore.selectedEntry = null
     }
@@ -23,7 +23,10 @@ export const useUiStore = defineStore('ui', () => {
     /**
      * 當日期被選擇時處理
      */
-    function onDateSelected(date: string) {
+    async function onDateSelected(date: string) {
+        // 設置選擇的日期和條目
+        const { useSalaryStore } = await import('@/store/salary')
+        const salaryStore = useSalaryStore()
         salaryStore.selectedDate = date
         salaryStore.selectedEntry = salaryStore.monthlyData[date] || null
         showForm.value = true
