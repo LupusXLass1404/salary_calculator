@@ -2,7 +2,7 @@
     <div class="modal-overlay" @click="handleOverlayClick">
         <div class="modal-content" @click.stop>
             <div class="modal-header">
-                <h3>{{ date }} 工作記錄</h3>
+                <h3>{{ salaryStore.selectedDate }} 工作記錄</h3>
                 <button @click="close" class="close-button">&times;</button>
             </div>
 
@@ -60,7 +60,8 @@
                 </div>
 
                 <div class="form-actions">
-                    <button v-if="entry" type="button" @click="deleteEntry" class="delete-button">刪除</button>
+                    <button v-if="salaryStore.selectedEntry" type="button" @click="deleteEntry"
+                        class="delete-button">刪除</button>
                     <button type="button" @click="close" class="cancel-button">取消</button>
                     <button type="submit" class="save-button">儲存</button>
                 </div>
@@ -73,12 +74,13 @@
 import { ref, computed, watch } from 'vue';
 import { calculateWorkHours } from '@/utils/time';
 import { calculateSalary } from '@/utils/calculations';
+import { useSalaryStore } from '@/store/salary';
+import { useSettingsStore } from '@/store/settings';
+import { useUiStore } from '@/store/ui';
 
-interface Props {
-    entry: any;
-    date: string | null;
-    defaultBreakMinutes: number;
-}
+const salaryStore = useSalaryStore();
+const settingsStore = useSettingsStore();
+const uiStore = useUiStore();
 
 interface Emits {
     (e: 'save', entry: any): void;
@@ -86,7 +88,6 @@ interface Emits {
     (e: 'close'): void;
 }
 
-const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 const formData = ref({
@@ -110,7 +111,7 @@ const calculation = computed(() => {
             end: formData.value.end,
             breakMinutes: formData.value.breakMinutes,
             hourlyRate: formData.value.hourlyRate,
-            date: props.date,
+            date: salaryStore.selectedDate,
             // isHoliday will be automatically determined
         }, formData.value.hourlyRate);
     }
@@ -126,7 +127,7 @@ const calculation = computed(() => {
 function save() {
     const entry = {
         ...formData.value,
-        date: props.date
+        date: salaryStore.selectedDate
     };
     emit('save', entry);
 }
@@ -146,19 +147,19 @@ function handleOverlayClick() {
 }
 
 // Watch for entry changes to populate form
-watch(() => props.entry, (newEntry) => {
+watch(() => salaryStore.selectedEntry, (newEntry) => {
     if (newEntry) {
         formData.value = {
             start: newEntry.start || '',
             end: newEntry.end || '',
-            breakMinutes: newEntry.breakMinutes !== undefined ? newEntry.breakMinutes : props.defaultBreakMinutes,
+            breakMinutes: newEntry.breakMinutes !== undefined ? newEntry.breakMinutes : settingsStore.settings.globalBreakMinutes,
             hourlyRate: newEntry.hourlyRate || 196
         };
     } else {
         formData.value = {
             start: '',
             end: '',
-            breakMinutes: props.defaultBreakMinutes,
+            breakMinutes: settingsStore.settings.globalBreakMinutes,
             hourlyRate: 196
         };
     }

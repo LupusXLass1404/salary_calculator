@@ -1,4 +1,4 @@
-import { calculateWorkHours, calculateRegularHours, calculateOvertimeHours, calculateHolidayHours, isHoliday } from './time';
+import { calculateWorkHours, calculateRegularHours, calculateOvertimeHours, isHoliday } from './time';
 import { parse } from 'date-fns';
 
 export interface SalaryCalculation {
@@ -34,9 +34,18 @@ export function calculateSalary(entry: any, hourlyRate: number): SalaryCalculati
   const workDate = entry.date ? parse(entry.date, 'yyyy-MM-dd', new Date()) : new Date();
   const isWorkHoliday = isHoliday(workDate);
 
-  const regularHours = calculateRegularHours(totalHours);
-  const overtimeHours = calculateOvertimeHours(totalHours);
-  const holidayHours = calculateHolidayHours(totalHours, isWorkHoliday);
+  let regularHours = 0;
+  let overtimeHours = 0;
+  let holidayHours = 0;
+
+  if (isWorkHoliday) {
+    // On holidays, all hours are holiday pay
+    holidayHours = totalHours;
+  } else {
+    // On regular days, calculate regular and overtime hours
+    regularHours = calculateRegularHours(totalHours);
+    overtimeHours = calculateOvertimeHours(totalHours);
+  }
 
   // Taiwan labor law: overtime pay is 1.33x regular rate for first 2 hours, 1.66x for hours beyond
   const regularPay = regularHours * hourlyRate;

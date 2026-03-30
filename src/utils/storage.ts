@@ -1,5 +1,5 @@
 const SETTINGS_KEY = 'salary_calculator_settings';
-const MONTHLY_DATA_PREFIX = 'salary_calculator_month_';
+const MONTHLY_DATA_PREFIX = 'salary_calculator_';
 
 export interface Settings {
   hourlyRate: number;

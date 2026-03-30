@@ -1,10 +1,32 @@
 <script setup lang="ts">
-import { useAppStore } from './store/app';
+import { useSalaryStore } from './store/salary';
+import { useSettingsStore } from './store/settings';
+import { useUiStore } from './store/ui';
 import Calendar from './components/Calendar.vue';
 import WorkEntryForm from './components/WorkEntryForm.vue';
 import BatchWorkEntryForm from './components/BatchWorkEntryForm.vue';
+import Summary from './components/Summary.vue';
 
-const appStore = useAppStore();
+const salaryStore = useSalaryStore();
+const settingsStore = useSettingsStore();
+const uiStore = useUiStore();
+
+function handleImport(event: Event) {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const jsonData = e.target?.result as string;
+      if (jsonData) {
+        settingsStore.importData(jsonData);
+        // Reload data after import
+        salaryStore.loadCurrentMonthData();
+      }
+    };
+    reader.readAsText(file);
+  }
+}
 </script>
 
 <template>
@@ -13,76 +35,38 @@ const appStore = useAppStore();
       <h1>薪水計算器</h1>
       <div class="settings-bar">
         <div class="action-buttons">
-          <button @click="appStore.isEditingMode = !appStore.isEditingMode" class="edit-mode-button"
-            :class="{ active: appStore.isEditingMode }">
-            <span class="button-icon">{{ appStore.isEditingMode ? '✓' : '✏️' }}</span>
-            {{ appStore.isEditingMode ? '完成編輯' : '編輯時間' }}
+          <button @click="uiStore.isEditingMode = !uiStore.isEditingMode" class="edit-mode-button"
+            :class="{ active: uiStore.isEditingMode }">
+            <span class="button-icon">{{ uiStore.isEditingMode ? '✓' : '✏️' }}</span>
+            {{ uiStore.isEditingMode ? '完成編輯' : '編輯時間' }}
           </button>
-          <button @click="appStore.exportData" class="export-button">
+          <button @click="settingsStore.exportData" class="export-button">
             <span class="button-icon">📤</span>
             匯出資料
           </button>
           <label for="importFile" class="import-button">
             <span class="button-icon">📥</span>
             匯入資料
-            <input id="importFile" type="file" accept=".json" @change="appStore.importData" style="display: none;" />
+            <input id="importFile" type="file" accept=".json" @change="handleImport" style="display: none;" />
           </label>
         </div>
       </div>
     </header>
 
     <main class="app-main">
-      <BatchWorkEntryForm :default-break-minutes="appStore.settings.globalBreakMinutes"
-        :batch-defaults="appStore.settings.batchDefaults" @apply-batch="appStore.onApplyBatchEntry"
-        @settings-changed="appStore.onBatchSettingsChanged" />
+      <BatchWorkEntryForm @apply-batch="salaryStore.onApplyBatchEntry"
+        @settings-changed="settingsStore.onBatchSettingsChanged" />
 
       <div class="calendar-section">
-        <Calendar :current-month="appStore.currentMonth" :hourly-rate="appStore.settings.hourlyRate"
-          :is-editing-mode="appStore.isEditingMode" :refresh-key="appStore.refreshCalendar"
-          @date-selected="appStore.onDateSelected" @month-changed="appStore.onMonthChanged"
-          @entry-updated="appStore.onEntryUpdated" @entry-deleted="appStore.onEntryDeleted" />
+        <Calendar @date-selected="uiStore.onDateSelected" @month-changed="salaryStore.onMonthChanged"
+          @entry-updated="salaryStore.onEntryUpdated" @entry-deleted="salaryStore.onEntryDeleted" />
       </div>
-
-      <div class="summary-section">
-        <h2>{{ appStore.currentMonthFormatted }} 總計</h2>
-        <div class="summary-grid">
-          <div class="summary-item">
-            <span class="label">總工時:</span>
-            <span class="value">{{ isNaN(appStore.monthlyTotal.totalHours) ? '0.0' :
-              appStore.monthlyTotal.totalHours.toFixed(1) }}
-              小時</span>
-          </div>
-          <div class="summary-item">
-            <span class="label">正常工資:</span>
-            <span class="value">${{ isNaN(appStore.monthlyTotal.regularPay) ? '0' :
-              appStore.monthlyTotal.regularPay.toLocaleString()
-              }}</span>
-          </div>
-          <div class="summary-item">
-            <span class="label">加班工資:</span>
-            <span class="value">${{ isNaN(appStore.monthlyTotal.overtimePay) ? '0' :
-              appStore.monthlyTotal.overtimePay.toLocaleString()
-              }}</span>
-          </div>
-          <div class="summary-item">
-            <span class="label">假日工資:</span>
-            <span class="value">${{ isNaN(appStore.monthlyTotal.holidayPay) ? '0' :
-              appStore.monthlyTotal.holidayPay.toLocaleString()
-              }}</span>
-          </div>
-          <div class="summary-item total">
-            <span class="label">總薪資:</span>
-            <span class="value">${{ isNaN(appStore.monthlyTotal.totalPay) ? '0' :
-              appStore.monthlyTotal.totalPay.toLocaleString()
-              }}</span>
-          </div>
-        </div>
-      </div>
+      <!-- Summary -->
+      <Summary />
     </main>
 
-    <WorkEntryForm v-if="appStore.showForm" :entry="appStore.selectedEntry" :date="appStore.selectedDate"
-      :default-break-minutes="appStore.settings.globalBreakMinutes" @save="appStore.onSaveEntry"
-      @delete="appStore.onDeleteEntry" @close="appStore.closeForm" />
+    <WorkEntryForm v-if="uiStore.showForm" @save="salaryStore.onSaveEntry" @delete="salaryStore.onDeleteEntry"
+      @close="uiStore.closeForm" />
   </div>
 </template>
 

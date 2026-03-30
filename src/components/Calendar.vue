@@ -56,13 +56,13 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isTod
 import { loadMonthData } from '@/utils/storage';
 import { calculateWorkHours, getHolidayName } from '@/utils/time';
 import { calculateSalary } from '@/utils/calculations';
+import { useSalaryStore } from '@/store/salary';
+import { useSettingsStore } from '@/store/settings';
+import { useUiStore } from '@/store/ui';
 
-interface Props {
-    currentMonth: string; // YYYY-MM
-    hourlyRate: number;
-    isEditingMode?: boolean;
-    refreshKey?: number;
-}
+const salaryStore = useSalaryStore();
+const settingsStore = useSettingsStore();
+const uiStore = useUiStore();
 
 interface Emits {
     (e: 'date-selected', date: string): void;
@@ -71,20 +71,21 @@ interface Emits {
     (e: 'entry-deleted', date: string): void;
 }
 
-const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 const currentDate = ref(new Date());
 
 const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
 
+const isEditingMode = computed(() => uiStore.isEditingMode);
+
 const currentMonthFormatted = computed(() => {
-    const [year, month] = props.currentMonth.split('-');
+    const [year, month] = salaryStore.currentMonth.split('-');
     return `${year}年${month}月`;
 });
 
 const calendarDates = computed(() => {
-    const parts = props.currentMonth.split('-');
+    const parts = salaryStore.currentMonth.split('-');
     if (parts.length !== 2) return [];
     const yearStr = parts[0];
     const monthStr = parts[1];
@@ -121,11 +122,11 @@ const editForm = ref({
 });
 
 function loadCurrentMonthData() {
-    monthData.value = loadMonthData(props.currentMonth);
+    monthData.value = loadMonthData(salaryStore.currentMonth);
 }
 
 // Watch for refreshKey changes to reload data
-watch(() => props.refreshKey, () => {
+watch(() => uiStore.refreshCalendar, () => {
     loadCurrentMonthData();
 });
 
@@ -156,9 +157,9 @@ function getHolidayNameForDate(dateStr: string): string | null {
 }
 
 function handleDateClick(dateStr: string) {
-    if (props.isEditingMode && hasWorkEntry(dateStr)) {
+    if (isEditingMode.value && hasWorkEntry(dateStr)) {
         editEntry(dateStr);
-    } else if (!props.isEditingMode) {
+    } else if (!isEditingMode.value) {
         emit('date-selected', dateStr);
     }
 }
@@ -207,7 +208,7 @@ function deleteEntry() {
 }
 
 function previousMonth() {
-    const parts = props.currentMonth.split('-');
+    const parts = salaryStore.currentMonth.split('-');
     if (parts.length !== 2) return;
     const yearStr = parts[0];
     const monthStr = parts[1];
@@ -221,7 +222,7 @@ function previousMonth() {
 }
 
 function nextMonth() {
-    const parts = props.currentMonth.split('-');
+    const parts = salaryStore.currentMonth.split('-');
     if (parts.length !== 2) return;
     const yearStr = parts[0];
     const monthStr = parts[1];
@@ -235,9 +236,9 @@ function nextMonth() {
 }
 
 // Watch for month changes
-watch(() => props.currentMonth, loadCurrentMonthData, { immediate: true });
+watch(() => salaryStore.currentMonth, loadCurrentMonthData, { immediate: true });
 // Watch for parent data updates and reload
-watch(() => props.refreshKey, () => {
+watch(() => uiStore.refreshCalendar, () => {
     loadCurrentMonthData();
 }, { immediate: true });
 </script>

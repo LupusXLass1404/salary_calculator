@@ -71,31 +71,22 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { eachDayOfInterval, parseISO, format, isMonday, isTuesday, isWednesday, isThursday, isFriday, isSaturday, isSunday } from 'date-fns';
+import { useSettingsStore } from '@/store/settings';
 
-interface Props {
-    defaultBreakMinutes: number;
-    batchDefaults: {
-        startTime: string;
-        endTime: string;
-        breakMinutes: number;
-        selectedWeekdays: number[];
-    };
-}
-
-const props = defineProps<Props>();
+const settingsStore = useSettingsStore();
 
 const emit = defineEmits<{
     'apply-batch': [data: { dates: string[], startTime: string, endTime: string, breakMinutes: number }];
-    'settings-changed': [settings: Props['batchDefaults']];
+    'settings-changed': [settings: { startTime: string; endTime: string; breakMinutes: number; selectedWeekdays: number[] }];
 }>();
 
 const weekdayNames = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-const selectedWeekdays = ref<number[]>([...props.batchDefaults.selectedWeekdays]);
+const selectedWeekdays = ref<number[]>([...settingsStore.settings.batchDefaults.selectedWeekdays]);
 
 const batchData = ref({
-    startTime: props.batchDefaults.startTime,
-    endTime: props.batchDefaults.endTime,
-    breakMinutes: props.batchDefaults.breakMinutes,
+    startTime: settingsStore.settings.batchDefaults.startTime,
+    endTime: settingsStore.settings.batchDefaults.endTime,
+    breakMinutes: settingsStore.settings.batchDefaults.breakMinutes,
     startDate: format(new Date(), 'yyyy-MM-dd'),
     endDate: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'), // 預設加30天
 });
@@ -176,11 +167,11 @@ function applyBatchEntry() {
 }
 
 function resetForm() {
-    selectedWeekdays.value = [...props.batchDefaults.selectedWeekdays];
+    selectedWeekdays.value = [...settingsStore.settings.batchDefaults.selectedWeekdays];
     batchData.value = {
-        startTime: props.batchDefaults.startTime,
-        endTime: props.batchDefaults.endTime,
-        breakMinutes: props.batchDefaults.breakMinutes,
+        startTime: settingsStore.settings.batchDefaults.startTime,
+        endTime: settingsStore.settings.batchDefaults.endTime,
+        breakMinutes: settingsStore.settings.batchDefaults.breakMinutes,
         startDate: format(new Date(), 'yyyy-MM-dd'),
         endDate: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
     };
