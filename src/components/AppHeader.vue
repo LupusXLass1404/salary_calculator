@@ -26,6 +26,24 @@ function handleImport(event: Event) {
         reader.readAsText(file)
     }
 }
+
+/**
+ * 處理數據匯出
+ */
+function handleExport() {
+    const jsonData = settingsStore.exportData()
+    const blob = new Blob([jsonData], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `salary-data-${new Date().toISOString().split('T')[0]}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    URL.revokeObjectURL(url)
+}
 </script>
 
 <template>
@@ -38,7 +56,7 @@ function handleImport(event: Event) {
                     <span class="button-icon">{{ uiStore.isEditingMode ? '✓' : '✏️' }}</span>
                     {{ uiStore.isEditingMode ? '完成編輯' : '編輯時間' }}
                 </button>
-                <button @click="settingsStore.exportData" class="export-button">
+                <button @click="handleExport" class="export-button">
                     <span class="button-icon">📤</span>
                     匯出資料
                 </button>

@@ -1,36 +1,42 @@
 <script setup lang="ts">
 import { useUiStore } from '@/store/ui';
+
 import AppHeader from '@/components/AppHeader.vue';
 import Calendar from '@/components/Calendar.vue';
-import WorkEntryForm from '@/components/WorkEntryForm.vue';
-import BatchWorkEntryForm from '@/components/BatchWorkEntryForm.vue';
 import Summary from '@/components/Summary.vue';
+import BatchWorkEntryForm from '@/components/BatchWorkEntryForm.vue';
+import WorkEntryForm from '@/components/WorkEntryForm.vue';
 
 const uiStore = useUiStore();
 </script>
 
 <template>
-  <div id="app">
+  <div class="container">
     <AppHeader />
 
     <main class="app-main">
       <div class="calendar-section">
+        <!-- 日歷 -->
         <Calendar />
       </div>
       <div class="summary-section">
+        <!-- 總計 -->
         <Summary />
       </div>
     </main>
 
+    <!-- 批量填寫 -->
     <BatchWorkEntryForm />
 
+    <!-- 彈窗 -->
     <WorkEntryForm v-if="uiStore.showForm" />
   </div>
 </template>
 
 <style scoped>
-#app {
+.container {
   font-family: 'Helvetica Neue', Arial, sans-serif;
+  width: 100%;
   max-width: 1200px;
   margin: 0 auto;
   padding: 1.5rem;
@@ -38,6 +44,7 @@ const uiStore = useUiStore();
   color: #eeeeee;
   display: flex;
   flex-direction: column;
+
 }
 
 .app-main {
